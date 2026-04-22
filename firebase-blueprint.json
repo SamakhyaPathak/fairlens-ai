@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "Audit": {
+      "title": "Fairness Audit",
+      "description": "Records of a demographic parity and bias audit performed on a dataset.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who performed the audit." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the audit was performed." },
+        "fairnessScore": { "type": "number", "description": "Overall fairness score (0-100)." },
+        "targetCol": { "type": "string", "description": "Selected target outcome column." },
+        "sensitiveCol": { "type": "string", "description": "Selected sensitive attribute column." },
+        "privilegedValue": { "type": "string", "description": "Value identifying the privileged group." },
+        "unprivilegedValue": { "type": "string", "description": "Value identifying the unprivileged group." },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "demographicParityGap": { "type": "number" },
+            "disparateImpactRatio": { "type": "number" },
+            "equalizedOddsDiff": { "type": "number" }
+          }
+        },
+        "remediationAdvice": { "type": "string", "description": "AI generated advice for this specific audit." }
+      },
+      "required": ["userId", "timestamp", "fairnessScore", "targetCol", "sensitiveCol"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Settings and profile information for the user.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "theme": { "type": "string", "enum": ["light", "dark"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/audits/{auditId}": {
+      "schema": "Audit",
+      "description": "Collection of fairness audits."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User specific data and preferences."
+    }
+  }
+}

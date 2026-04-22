@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+    
+    function isValidAudit(data) {
+      return data.keys().hasAll(['userId', 'timestamp', 'fairnessScore', 'targetCol', 'sensitiveCol']) &&
+             data.userId == request.auth.uid &&
+             data.fairnessScore is number &&
+             data.fairnessScore >= 0 && data.fairnessScore <= 100 &&
+             data.targetCol is string && data.targetCol.size() <= 100 &&
+             data.sensitiveCol is string && data.sensitiveCol.size() <= 100 &&
+             data.timestamp == request.time;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['email', 'theme', 'createdAt']) &&
+             data.email is string && data.email.size() <= 256 &&
+             data.theme in ['light', 'dark'] &&
+             data.createdAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['theme']) ||
+        (incoming().diff(existing()).affectedKeys().hasOnly(['displayName']) && incoming().displayName.size() <= 100)
+      );
+    }
+
+    match /audits/{auditId} {
+      // Secure List Query: Rule itself enforces user boundary
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && isValidId(auditId) && isValidAudit(incoming());
+      
+      // Audits are immutable once created
+      allow update, delete: if false;
+    }
+  }
+}

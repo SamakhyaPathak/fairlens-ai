@@ -1,0 +1,6 @@
+{
+  "name": "FairLens AI",
+  "description": "A complete full-stack web application for the Google Solution Challenge 2026 that detects, measures, and remediates algorithmic bias using FastAPI and Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
